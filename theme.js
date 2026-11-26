@@ -1,6 +1,9 @@
 // Light/dark theme toggle.
 (function () {
-  var STORAGE_KEY = 'weathercheck-theme';
+  // Defined by the inline <head> script in index.html.
+  var STORAGE_KEY = window.WC_THEME_KEY;
+  // Remembers an explicit choice even when localStorage is blocked.
+  var userChose = false;
   var root = document.documentElement;
   var toggle = document.getElementById('theme-toggle');
   var media = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
@@ -32,6 +35,7 @@
   if (toggle) {
     toggle.addEventListener('click', function () {
       var next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      userChose = true;
       apply(next);
       save(next);
     });
@@ -40,7 +44,7 @@
   // Follow OS changes until the user makes an explicit choice.
   if (media) {
     var onChange = function (e) {
-      if (!getSaved()) apply(e.matches ? 'dark' : 'light');
+      if (!userChose && !getSaved()) apply(e.matches ? 'dark' : 'light');
     };
     if (media.addEventListener) media.addEventListener('change', onChange);
     else if (media.addListener) media.addListener(onChange);

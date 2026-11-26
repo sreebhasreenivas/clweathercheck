@@ -55,23 +55,54 @@
 
   function round(n) { return Math.round(n); }
 
-  // Accepts "City" or "City, Region/Country" (e.g. "Paris, FR", "Melbourne, Australia").
+  // Common region abbreviations (Australian states/territories, US states).
+  var REGION_ABBR = {
+    nsw: 'new south wales', vic: 'victoria', qld: 'queensland', sa: 'south australia',
+    wa: 'western australia', tas: 'tasmania', nt: 'northern territory', act: 'australian capital territory',
+    al: 'alabama', ak: 'alaska', az: 'arizona', ar: 'arkansas', ca: 'california', co: 'colorado',
+    ct: 'connecticut', de: 'delaware', fl: 'florida', ga: 'georgia', hi: 'hawaii', id: 'idaho',
+    il: 'illinois', in: 'indiana', ia: 'iowa', ks: 'kansas', ky: 'kentucky', la: 'louisiana',
+    me: 'maine', md: 'maryland', ma: 'massachusetts', mi: 'michigan', mn: 'minnesota',
+    ms: 'mississippi', mo: 'missouri', mt: 'montana', ne: 'nebraska', nv: 'nevada',
+    nh: 'new hampshire', nj: 'new jersey', nm: 'new mexico', ny: 'new york', nc: 'north carolina',
+    nd: 'north dakota', oh: 'ohio', ok: 'oklahoma', or: 'oregon', pa: 'pennsylvania',
+    ri: 'rhode island', sc: 'south carolina', sd: 'south dakota', tn: 'tennessee', tx: 'texas',
+    ut: 'utah', vt: 'vermont', va: 'virginia', wv: 'west virginia', wi: 'wisconsin', wy: 'wyoming',
+    dc: 'district of columbia'
+  };
+
+  function lower(v) { return v ? String(v).toLowerCase() : ''; }
+
+  // True if one qualifier (e.g. "fr", "australia", "nsw", "vic") describes this result.
+  function matchesQualifier(r, q) {
+    var country = lower(r.country);
+    var code = lower(r.country_code);
+    var region = lower(r.admin1);
+    if (q === country || q === code || q === region) return true;
+    if (region && REGION_ABBR[q] === region) return true;
+    // Allow shortened region names such as "Calif" or "Tasm".
+    return q.length >= 3 && region.indexOf(q) === 0;
+  }
+
+  // Accepts "City" or "City, Region, Country" in any order after the city
+  // (e.g. "Paris, FR", "Sydney, NSW", "Melbourne, Victoria, Australia").
   async function geocode(query) {
     var parts = query.split(',').map(function (s) { return s.trim(); }).filter(Boolean);
     var name = parts[0] || query;
-    var qualifier = parts.slice(1).join(' ').toLowerCase();
+    var qualifiers = parts.slice(1).map(lower);
 
-    var url = GEO_URL + '?count=10&language=en&format=json&name=' + encodeURIComponent(name);
+    // With a qualifier, fetch the API maximum so smaller towns that share a
+    // name with bigger places are still in the list we filter.
+    var count = qualifiers.length ? 100 : 10;
+    var url = GEO_URL + '?count=' + count + '&language=en&format=json&name=' + encodeURIComponent(name);
     var res = await fetch(url);
     if (!res.ok) throw new Error('Location lookup failed (' + res.status + ').');
     var data = await res.json();
     var results = data.results || [];
 
-    if (qualifier) {
+    if (qualifiers.length) {
       results = results.filter(function (r) {
-        return [r.country, r.country_code, r.admin1].some(function (v) {
-          return v && String(v).toLowerCase() === qualifier;
-        });
+        return qualifiers.every(function (q) { return matchesQualifier(r, q); });
       });
     }
     if (!results.length) throw new Error('No city found for "' + query + '".');
@@ -169,7 +200,8 @@
       renderCurrent(place, wx);
       renderForecast(wx);
       emptyEl.hidden = true;
-      setStatus('');
+      // Keep a message in the live region so screen readers hear that results loaded.
+      setStatus('Showing weather for ' + document.getElementById('current-place').textContent + '.');
     } catch (err) {
       // Don't leave the previous city's weather on screen next to the error.
       showEmptyState();

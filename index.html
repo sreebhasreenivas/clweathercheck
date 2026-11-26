@@ -7,9 +7,11 @@
   <meta name="color-scheme" content="light dark">
   <script>
     // Set the theme before first paint to avoid a flash of the wrong theme.
+    // theme.js reads the storage key from window.WC_THEME_KEY, so it is defined only here.
+    window.WC_THEME_KEY = 'weathercheck-theme';
     (function () {
       var t = null;
-      try { t = localStorage.getItem('weathercheck-theme'); } catch (e) {}
+      try { t = localStorage.getItem(window.WC_THEME_KEY); } catch (e) {}
       if (t !== 'light' && t !== 'dark') {
         t = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
       }
