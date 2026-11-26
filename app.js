@@ -119,7 +119,7 @@
     var params = new URLSearchParams({
       latitude: lat,
       longitude: lon,
-      current: 'temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code',
+      current: 'temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code,is_day',
       daily: 'weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max',
       timezone: 'auto',
       forecast_days: '5'
@@ -127,6 +127,44 @@
     var res = await fetch(WX_URL + '?' + params.toString());
     if (!res.ok) throw new Error('Weather lookup failed (' + res.status + ').');
     return res.json();
+  }
+
+  // Clothing advice from the feels-like temperature (°C), WMO code,
+  // today's rain chance (%, may be null) and wind speed (km/h).
+  function wearAdvice(feels, code, rainChance, wind, isDay) {
+    var tips = [];
+    if (feels < 5) tips.push('Heavy coat, warm layers, a beanie and gloves.');
+    else if (feels < 12) tips.push('A warm jacket over a jumper, with long pants.');
+    else if (feels < 18) tips.push('A light jacket or jumper.');
+    else if (feels < 25) tips.push('A T-shirt or light long sleeves.');
+    else if (feels < 32) tips.push('Light, breathable clothes such as shorts and a T-shirt.');
+    else tips.push('Very light, loose clothes. Stay in the shade and drink plenty of water.');
+
+    var snowing = (code >= 71 && code <= 77) || code === 85 || code === 86;
+    var raining = (code >= 51 && code <= 67) || (code >= 80 && code <= 82) || code >= 95;
+    var windy = wind >= 30;
+
+    if (snowing) {
+      tips.push('Waterproof boots with good grip for the snow.');
+    } else if (raining || rainChance >= 50) {
+      var reason = raining ? "It's wet out" : rainChance + '% chance of rain today';
+      var gear = windy ? 'wear a hooded raincoat' : 'take an umbrella';
+      tips.push(reason + ': ' + gear + '.');
+    }
+    if (windy) tips.push("It's windy, so a windproof layer will help.");
+    // Clear or mainly clear during the day.
+    if (isDay && feels >= 18 && code <= 1) tips.push('Sunglasses, a hat and sunscreen if you are out in the sun.');
+    return tips;
+  }
+
+  function renderWear(tips) {
+    var list = document.getElementById('wear-list');
+    list.textContent = '';
+    tips.forEach(function (tip) {
+      var li = document.createElement('li');
+      li.textContent = tip;
+      list.appendChild(li);
+    });
   }
 
   function renderCurrent(place, wx) {
@@ -143,6 +181,8 @@
     document.getElementById('stat-wind').textContent = round(c.wind_speed_10m) + ' km/h';
     var rain = wx.daily.precipitation_probability_max && wx.daily.precipitation_probability_max[0];
     document.getElementById('stat-rain').textContent = rain == null ? '—' : rain + '%';
+    // Pass the rounded values so the advice agrees with the numbers on screen.
+    renderWear(wearAdvice(round(c.apparent_temperature), c.weather_code, rain, round(c.wind_speed_10m), c.is_day === 1));
 
     currentEl.hidden = false;
   }

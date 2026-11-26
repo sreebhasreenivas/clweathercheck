@@ -284,6 +284,10 @@ html.theme-ready .toggle-thumb { transition: transform 200ms ease, background-co
 .stat dt { font-size: 0.8rem; color: var(--text-muted); }
 .stat dd { margin: 2px 0 0; font-weight: 600; font-size: 1.1rem; }
 
+.wear { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); }
+.wear-title { margin: 0 0 6px; font-size: 1rem; }
+.wear-list { margin: 0; padding-left: 20px; }
+
 /* ==========================================================
    Forecast
    ========================================================== */
