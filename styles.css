@@ -213,7 +213,9 @@ html.theme-ready .toggle-thumb { transition: transform 200ms ease, background-co
   border-radius: 10px;
 }
 .search input::placeholder { color: var(--text-muted); }
-.search input:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px var(--focus); }
+/* Transparent outline stays invisible normally but is painted in Windows
+   forced-colors (High Contrast) mode, where box-shadow is removed. */
+.search input:focus { border-color: var(--primary); outline: 2px solid transparent; box-shadow: 0 0 0 3px var(--focus); }
 
 .btn-primary {
   padding: 12px 18px;

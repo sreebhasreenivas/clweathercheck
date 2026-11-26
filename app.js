@@ -55,13 +55,33 @@
 
   function round(n) { return Math.round(n); }
 
-  async function geocode(name) {
-    var url = GEO_URL + '?count=1&language=en&format=json&name=' + encodeURIComponent(name);
+  // Accepts "City" or "City, Region/Country" (e.g. "Paris, FR", "Melbourne, Australia").
+  async function geocode(query) {
+    var parts = query.split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+    var name = parts[0] || query;
+    var qualifier = parts.slice(1).join(' ').toLowerCase();
+
+    var url = GEO_URL + '?count=10&language=en&format=json&name=' + encodeURIComponent(name);
     var res = await fetch(url);
     if (!res.ok) throw new Error('Location lookup failed (' + res.status + ').');
     var data = await res.json();
-    if (!data.results || !data.results.length) throw new Error('No city found for "' + name + '".');
-    return data.results[0];
+    var results = data.results || [];
+
+    if (qualifier) {
+      results = results.filter(function (r) {
+        return [r.country, r.country_code, r.admin1].some(function (v) {
+          return v && String(v).toLowerCase() === qualifier;
+        });
+      });
+    }
+    if (!results.length) throw new Error('No city found for "' + query + '".');
+    return results[0];
+  }
+
+  function showEmptyState() {
+    currentEl.hidden = true;
+    forecastSection.hidden = true;
+    emptyEl.hidden = false;
   }
 
   async function getWeather(lat, lon) {
@@ -151,7 +171,13 @@
       emptyEl.hidden = true;
       setStatus('');
     } catch (err) {
-      setStatus(err.message || 'Something went wrong. Please try again.', true);
+      // Don't leave the previous city's weather on screen next to the error.
+      showEmptyState();
+      // fetch() rejects with a TypeError when the network or service is unreachable.
+      var msg = err instanceof TypeError
+        ? "Couldn't reach the weather service. Check your connection and try again."
+        : (err.message || 'Something went wrong. Please try again.');
+      setStatus(msg, true);
     } finally {
       submitBtn.disabled = false;
     }

@@ -1,4 +1,4 @@
-# WeatherCheck
+# Weather Check
 
 A small weather app with light and dark themes. Plain HTML, CSS and JS, with no build step. Weather data comes from [Open-Meteo](https://open-meteo.com/), which needs no API key.
 
@@ -9,6 +9,8 @@ Open `index.html` in a browser, or serve the folder:
 ```
 npx serve .
 ```
+
+On Windows PowerShell, use `npx.cmd serve .` instead. The default execution policy blocks `npx.ps1` with "running scripts is disabled on this system".
 
 ## Theming
 
